@@ -29,6 +29,22 @@ var editorLabel = document.getElementById('editorLabel');
 var iconTheme = 'vgi-';
 var starting_value = {};
 var sourceEditor;
+let cve5Schema;
+let cve5SchemaValidator;
+let cve5CnaContainerSchema;
+let cve5CnaContainerSchemaValidator;
+const cve5schemaUrl = "https://raw.githubusercontent.com/CVEProject/cve-schema/2aa608b6733cc2730a43901472ef0e706d0ef2b5/schema/v5.0/docs/CVE_JSON_bundled.json"
+const excludeErrors = {
+  "must have required property 'rejectedReasons'": true,
+  "must match exactly one schema in oneOf": true,
+  "must match a schema in anyOf": true,
+  "must NOT have additional properties": true,
+  "must have required property 'vendor'": true,
+  "must have required property 'product'": true,
+  "must have required property 'collectionURL'": true,
+  "must have required property 'packageName'": true,
+};
+const usefulAjvErrors = (e) => !(e.message in excludeErrors);
 
 JSONEditor.defaults.languages.en.error_oneOf = "Please fill in the required fields *";
 
@@ -1316,6 +1332,28 @@ function loadJSON(res, id, message, editorOptions) {
     }
     docEditor = new JSONEditor(document.getElementById('docEditor'), editorOptions ? editorOptions : docEditorOptions);
     docEditor.on('ready', async function () {
+        if (ajv7) {
+          Ajv = new ajv7({allErrors: true});
+          await fetch(cve5schemaUrl).then(
+            resp => resp.text()
+          ).then(
+            text => JSON.parse(text)
+          ).then(
+            schema => {
+
+              cve5Schema = {...schema};
+              cve5SchemaValidator = Ajv.compile(cve5Schema, {strict: false})
+              cve5CnaContainerSchema = {
+                definitions: schema.definitions,
+                oneOf:[
+                  {...schema.definitions.cnaPublishedContainer},
+                  {...schema.definitions.cnaRejectedContainer}
+                ],
+              };
+              cve5CnaContainerSchemaValidator = Ajv.compile(cve5CnaContainerSchema, {strict: false})
+            }
+          )
+        }
         await docEditor.root.setValue(res, true);
         infoMsg.textContent = message ? message : '';
         //errMsg.textContent = "";

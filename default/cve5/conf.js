@@ -392,6 +392,19 @@ module.exports = {
                     });
                 }
             }
+            if (path == "root.containers.cna") {
+              if(cve5CnaContainerSchemaValidator !== undefined && !cve5CnaContainerSchemaValidator(value)) {
+                for (let e of cve5CnaContainerSchemaValidator.errors.filter(usefulAjvErrors)) {
+                  if (e.message in excludeErrors) continue;
+                  errors.push({
+                    path: path + e.instancePath.replaceAll("/","."),
+                    property: 'format',
+                    message: e.message,
+                    source: "ajv",
+                  })
+                }
+              }
+            }
             return errors;
         }
     ],
